@@ -16,31 +16,31 @@ import java.util.stream.IntStream
 import kotlin.streams.asStream
 import kotlin.system.measureNanoTime
 
-private const val TOTAL_PROGRAMS = 1_000_000
-private const val MAX_BENCHMARK_VMS = 8_000_000
-private const val METAL_RASP_VMS = 100_000
-private const val JVM_RASP_VMS = 100_000
-private const val MAX_CONCURRENT_THREADS = 65_536
-private const val MEM_WORDS = 255
-private const val OUTPUT_WORDS = 3
-private const val QUANTUM = 1_000
-private const val MAX_STEPS = 1_000_000
+const val TOTAL_PROGRAMS = 1_000_000
+const val MAX_BENCHMARK_VMS = 8_000_000
+const val METAL_RASP_VMS = 100_000
+const val JVM_RASP_VMS = 100_000
+const val MAX_CONCURRENT_THREADS = 65_536
+const val MEM_WORDS = 255
+const val OUTPUT_WORDS = 3
+const val QUANTUM = 1_000
+const val MAX_STEPS = 1_000_000
 
 // Per-VM layout:
 // [pc, acc, steps, halted, outCount, out0, out1, out2, mem[0..255]]
-private const val PC = 0
-private const val ACC = 1
-private const val STEPS = 2
-private const val HALTED = 3
-private const val OUT_COUNT = 4
-private const val OUTPUT_STRIDE = OUTPUT_WORDS + 1
-private const val MEM_BASE = 4 + OUTPUT_STRIDE
-private const val VM_STRIDE = 4 + OUTPUT_STRIDE + MEM_WORDS
+const val PC = 0
+const val ACC = 1
+const val STEPS = 2
+const val HALTED = 3
+const val OUT_COUNT = 4
+const val OUTPUT_STRIDE = OUTPUT_WORDS + 1
+const val MEM_BASE = 4 + OUTPUT_STRIDE
+const val VM_STRIDE = 4 + OUTPUT_STRIDE + MEM_WORDS
 
-private const val OPCODE_BITS = 3
-private const val WORD_BITS = 29
-private const val OPCODE_MASK = (1 shl OPCODE_BITS) - 1
-private const val WORD_MASK = (1 shl WORD_BITS) - 1 // 0x1FFFFFFF
+const val OPCODE_BITS = 3
+const val WORD_BITS = 29
+const val OPCODE_MASK = (1 shl OPCODE_BITS) - 1
+const val WORD_MASK = (1 shl WORD_BITS) - 1 // 0x1FFFFFFF
 
 private fun initialMemory(program: IntArray): IntArray {
   require(program.size <= MEM_WORDS) {
@@ -111,7 +111,7 @@ fun checkSteps(p: String, upTo: Int = MAX_STEPS, program: IntArray = p.compileTo
   return upTo
 }
 
-fun writeVmInitialStates(programWords: IntArray, vmCount: Int = TOTAL_PROGRAMS, file: File = File("rasp_vms.bin")) {
+fun writeVmInitialStates(programWords: IntArray, vmCount: Int = TOTAL_PROGRAMS, file: File = File("cuda/rasp_vms.bin")) {
   file.also { println("Wrote to ${it.absolutePath}") }
   DataOutputStream(BufferedOutputStream(FileOutputStream(file))).use { out ->
     var vm = 0
@@ -129,7 +129,7 @@ fun writeVmInitialStates(programWords: IntArray, vmCount: Int = TOTAL_PROGRAMS, 
   }
 }
 
-fun readVmInitialStates(file: File = File("rasp_vms.bin"), vmCount: Int? = null): IntArray {
+fun readVmInitialStates(file: File = File("cuda/rasp_vms.bin"), vmCount: Int? = null): IntArray {
   val intsPerVm = MEM_BASE + MEM_WORDS + 1
   val totalInts = (file.length() / Int.SIZE_BYTES).toInt()
 
@@ -174,7 +174,7 @@ fun readVmInitialStates(file: File = File("rasp_vms.bin"), vmCount: Int? = null)
 
 private data class TopEntry(val steps: Int, val source: String)
 
-private class TopKPrinter(private val k: Int) {
+class TopKPrinter(private val k: Int) {
   private val lock = Any()
   private val top = mutableListOf<TopEntry>() // descending by steps
 
@@ -247,7 +247,7 @@ fun benchmarkPrograms() {
   report("JVM", workWords, sources.toTypedArray(), vmCount, totalTime)
 }
 
-private fun packProgramIntoBuffer(program: IntArray, programWords: IntArray, vm: Int) {
+fun packProgramIntoBuffer(program: IntArray, programWords: IntArray, vm: Int) {
   require(program.size <= MEM_WORDS) { "Program has ${program.size} instructions, exceeds VM memory budget $MEM_WORDS" }
   program.copyInto(programWords, vm * MEM_WORDS)
 }

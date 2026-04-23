@@ -27,3 +27,11 @@ application {
 tasks.test {
   useJUnitPlatform()
 }
+
+tasks.register<JavaExec>("writeVMs") {
+  group = "application"
+  description = "Runs WriteVMs.kt"
+  classpath = sourceSets["main"].runtimeClasspath
+  mainClass.set("org.example.WriteVMsKt")
+  dependsOn(tasks.named("classes"))
+}

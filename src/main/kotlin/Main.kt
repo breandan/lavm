@@ -1,9 +1,10 @@
 package org.example
 
 import ai.hypergraph.kaliningraph.automata.completeWithSparseGRE
+import ai.hypergraph.kaliningraph.parsing.CFG
+import ai.hypergraph.kaliningraph.parsing.noEpsilonOrNonterminalStubs
+import ai.hypergraph.kaliningraph.parsing.parseCFG
 import ai.hypergraph.kaliningraph.parsing.tmLst
-import ai.hypergraph.kaliningraph.rasp.compileToRASPBytecode
-import ai.hypergraph.kaliningraph.repair.loopyHeapless
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream
@@ -16,7 +17,7 @@ import java.util.stream.IntStream
 import kotlin.streams.asStream
 import kotlin.system.measureNanoTime
 
-const val TOTAL_PROGRAMS = 1_000_000
+const val TOTAL_PROGRAMS = 8_000_000
 const val MAX_BENCHMARK_VMS = 8_000_000
 const val METAL_RASP_VMS = 100_000
 const val JVM_RASP_VMS = 100_000
@@ -27,7 +28,7 @@ const val QUANTUM = 1_000
 const val MAX_STEPS = 1_000_000
 
 // Per-VM layout:
-// [pc, acc, steps, halted, outCount, out0, out1, out2, mem[0..255]]
+// [pc, acc, steps, halted, outCount, out0, out1, out2, mem[0..254]]
 const val PC = 0
 const val ACC = 1
 const val STEPS = 2
@@ -41,6 +42,7 @@ const val OPCODE_BITS = 3
 const val WORD_BITS = 29
 const val OPCODE_MASK = (1 shl OPCODE_BITS) - 1
 const val WORD_MASK = (1 shl WORD_BITS) - 1 // 0x1FFFFFFF
+val DEFAULT_VM_INITIAL_STATES_FILE = File("cuda/rasp_vms_brk.bin")
 
 private fun initialMemory(program: IntArray): IntArray {
   require(program.size <= MEM_WORDS) {
@@ -69,15 +71,20 @@ private fun mulWord(x: Int, y: Int): Int = (((x and WORD_MASK).toLong() * (y and
 */
 fun main() {
   checkSteps("""
-fun f0(ipt: W ^ 1) -> W ^ 1 {
-  scr[7] = 0;
-  opt[0] = 8;
-  whl opt[0] {
-    opt[0] = opt[0] + opt[0];
-    ife ipt[0] { whl opt[0] { opt[0] = 0 } }
-               { whl scr[7] { scr[1] = 2 }; scr[1] = 8 }
-  };
-  opt[0] = 3
+fun f0(ipt: W ^ 9) -> W ^ 3 {
+    scr[2] = ipt[0] * 1;
+    opt[1] = 4;
+    opt[0] = 6;
+    ife scr[5] { hlt } {
+        opt[0] = ipt[6] * 2;
+        scr[0] = 9;
+        scr[3] = ipt[7]
+    };
+    whl opt[1] {
+        scr[1] = 8;
+        opt[0] = opt[0] + 4;
+        opt[1] = opt[0] * opt[0]
+    }
 }
 """.trimIndent()).also { println("steps=$it") }
   benchmarkPrograms()
@@ -111,25 +118,8 @@ fun checkSteps(p: String, upTo: Int = MAX_STEPS, program: IntArray = p.compileTo
   return upTo
 }
 
-fun writeVmInitialStates(programWords: IntArray, vmCount: Int = TOTAL_PROGRAMS, file: File = File("cuda/rasp_vms.bin")) {
-  file.also { println("Wrote to ${it.absolutePath}") }
-  DataOutputStream(BufferedOutputStream(FileOutputStream(file))).use { out ->
-    var vm = 0
-    while (vm < vmCount) {
-      var i = 0
-      while (i < MEM_BASE) { out.writeInt(0); i++ }
-
-      val src = vm * MEM_WORDS
-      i = 0
-      while (i < MEM_WORDS) { out.writeInt(programWords[src + i]); i++ }
-
-      out.writeInt(Int.MAX_VALUE)
-      vm++
-    }
-  }
-}
-
-fun readVmInitialStates(file: File = File("cuda/rasp_vms.bin"), vmCount: Int? = null): IntArray {
+fun readVmInitialStates(file: File = DEFAULT_VM_INITIAL_STATES_FILE, vmCount: Int? = null): IntArray {
+  require(file.isFile) { "VM initial-state file does not exist: ${file.absolutePath}. Run ./gradlew writeVMs first." }
   val intsPerVm = MEM_BASE + MEM_WORDS + 1
   val totalInts = (file.length() / Int.SIZE_BYTES).toInt()
 
@@ -205,33 +195,46 @@ class TopKPrinter(private val k: Int) {
 
 val CHECKUP = 999_000
 
-fun benchmarkPrograms() {
-  val sampledProgramWords = IntArray(TOTAL_PROGRAMS * MEM_WORDS)
-  val sources = mutableListOf<String>()
-  val cfg = loopyHeapless
-  val top3 = TopKPrinter(5)
+val loopyHeapless: CFG by lazy {
+  """
+    START -> fun f0 ( ipt : W ^ N ) -> W ^ N { B }
+    N -> 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+    B -> S | S ; B | hlt | brk
+    S -> P = E | ife G { B } { B } | whl G { B }
+    Z -> 0 | N
+    G -> ipt [ Z ] | scr [ Z ] | opt [ Z ]
+    P -> scr [ Z ] | opt [ Z ]
+    E -> G + G | G * G | G + Z | G * Z | G | Z
+  """.parseCFG().noEpsilonOrNonterminalStubs
+}
 
-  completeWithSparseGRE(List(120) { "_" }, cfg)!!
-    .sampleStrWithoutReplacement(cfg.tmLst).asStream().parallel()
-    .map { it to it.compileToRASPBytecode() }
-//    .filter { it.second.size < 127 }
-    .filter { (source, bytecode) ->
-      val steps = checkSteps(source, CHECKUP, bytecode)
-      if (steps < CHECKUP) { top3.offer(steps, source) }
-      steps > CHECKUP
-    }
-    .limit(TOTAL_PROGRAMS.toLong())
-    .toList()
-    .forEachIndexed { vm, (source, bytecode) ->
-      sources += source
-      packProgramIntoBuffer(bytecode, sampledProgramWords, vm)
-    }
+fun benchmarkPrograms() {
+  val sampledProgramWords = readVmInitialStates(vmCount = TOTAL_PROGRAMS)
+  val sources = mutableListOf<String>()
+
+//  val cfg = loopyHeapless
+//  val top3 = TopKPrinter(5)
+//
+//  completeWithSparseGRE(List(120) { "_" }, cfg)!!
+//    .sampleStrWithoutReplacement(cfg.tmLst).asStream().parallel()
+//    .map { it to it.compileToRASPBytecode() }
+////    .filter { it.second.size < 127 }
+//    .filter { (source, bytecode) ->
+//      val steps = checkSteps(source, CHECKUP, bytecode)
+//      if (steps < CHECKUP) { top3.offer(steps, source) }
+//      steps > CHECKUP
+//    }
+//    .limit(TOTAL_PROGRAMS.toLong())
+//    .toList()
+//    .forEachIndexed { vm, (source, bytecode) ->
+//      sources += source
+//      packProgramIntoBuffer(bytecode, sampledProgramWords, vm)
+//    }
 
 //  writeVmInitialStates(sampledProgramWords)
 //  System.exit(1)
 
-  val workWords = IntArray(MAX_BENCHMARK_VMS * VM_STRIDE)
-//  val programWords = readVmInitialStates(file = File("rasp_vms.bin"), vmCount = TOTAL_PROGRAMS)
+  val workWords = IntArray(TOTAL_PROGRAMS * VM_STRIDE)
 
   println("JVM")
   var vmCount = 0
@@ -349,7 +352,7 @@ private fun report(name: String, vmWords: IntArray, programSources: Array<String
   println()
   println("== $name ==")
   val halted = countHalted(vmWords, vmCount)
-  printStepHistogram(vmWords, vmCount, bucketSize = 10)
+  printStepHistogram(vmWords, vmCount, bucketSize = 1)
   printLongestRunningPrograms(vmWords, programSources, vmCount, topK = 10)
   val secs = elapsedNs / 1e9
   val rate = if (secs > 0.0) vmCount / secs else Double.POSITIVE_INFINITY
@@ -424,7 +427,8 @@ private fun printLongestRunningPrograms(vmWords: IntArray, programSources: Array
   println("top $topK longest-running naturally halting programs:")
   for ((rank, candidate) in top.sortedByDescending { it.steps }.withIndex()) {
     println("  ${rank + 1}.) steps=${candidate.steps} vm=${candidate.vm}")
-    println(programSources[candidate.vm]!!.prettyPrint())
+    val source = programSources.getOrNull(candidate.vm)
+    if (source != null) println(source.prettyPrint()) else println("  source unavailable for vm=${candidate.vm}")
     println("\n\n")
   }
 }
@@ -527,6 +531,11 @@ private class PrettyPrinter(source: String) {
       "hlt" -> {
         take()
         indent(depth) + "hlt"
+      }
+
+      "brk" -> {
+        take()
+        indent(depth) + "brk"
       }
 
       else -> {

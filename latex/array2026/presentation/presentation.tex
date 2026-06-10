@@ -68,6 +68,7 @@
 \newcommand{\ttrb}{\}}   % right brace token
 \newcommand{\ttus}{\_}   % underscore token (for f_*)
 \newcommand{\W}{\mathbb W}
+\newcommand{\diff}[1]{\textcolor{orange}{#1}}
 
 \pgfplotsset{
   runtimeplot/.style={
@@ -108,26 +109,29 @@
   \titlepage
 \end{frame}
 
-\begin{frame}{The RASP Model }
-  \begin{definition}[Cook \& Reckhow, 1973]
+\begin{frame}{The RASP Model}
+  \vspace{-0.4cm}
+  \begin{definition}[Cook \& Reckhow, '73]
   A RASP machine, \(\mathcal{R} = \langle C,c_0,\to,F\rangle\) consists of a configuration space, \( \langle i,a,M,u,y\rangle: C=\mathbb N\times\mathbb Z\times\mathbb Z^{\mathbb N}\times\mathbb Z^*\times\mathbb Z^* \). A RAS program is a vector \(P: (\mathbb Z\times\mathbb Z)^m\) packed with an \textit{input} \(x: \mathbb{Z}^*\), into an \textit{initial configuration}, \(c_0=\big\langle 0,0,M'_{0..2m} \gets P,x0,\varepsilon \big\rangle.\)
   Let \(\langle o,j\rangle=\langle M_i,M_{i+1}\rangle\) denote the \textit{opcode} and \textit{operand} and $\rightarrow$ be defined as:
-  \[\small
+  {\small
+  \[
   \langle i,a,M,u,y\rangle \rightarrow
   \left\{
     \begin{array}{@{}c@{}c@{\:,\:}l@{\:,\:}l@{\:,\:}l@{\:,\:}l@{}c@{\quad}l@{}}
-      \langle & i+2 & j     & M               & u & y          & \rangle, & \text{if } o=1_\texttt{LOD},\\
-      \langle & i+2 & a+M_j & M               & u & y          & \rangle, & \text{if } o=2_\texttt{ADD},\\
-      \langle & i+2 & a-M_j & M               & u & y          & \rangle, & \text{if } o=3_\texttt{SUB},\\
-      \langle & i+2 & a     & M_j\gets a      & u & y          & \rangle, & \text{if } o=4_\texttt{STO},\\
-      \langle & j   & a     & M               & u & y          & \rangle, & \text{if } o=5_\texttt{BPA}\ \wedge\ a>0,\\
-      \langle & i+2 & a     & M               & u & y          & \rangle, & \text{if } o=5_\texttt{BPA}\ \wedge\ a\le 0,\\
-      \langle & i+2 & a     & M_j\gets \sigma & v & y          & \rangle, & \text{if } o=6_\texttt{RD}\ \wedge\ u=\sigma v,\\
-      \langle & i+2 & a     & M               & u & y\cdot M_j & \rangle, & \text{if } o=7_\texttt{PRI},\\
+      \langle & i+2 & j     & M               & u & y          & \rangle, & \text{if } o=1_{\mathtt{LOD}},\\
+      \langle & i+2 & a+M_j & M               & u & y          & \rangle, & \text{if } o=2_{\mathtt{ADD}},\\
+      \langle & i+2 & a-M_j & M               & u & y          & \rangle, & \text{if } o=3_{\mathtt{SUB}},\\
+      \langle & i+2 & a     & M_j\gets a      & u & y          & \rangle, & \text{if } o=4_{\mathtt{STO}},\\
+      \langle & j   & a     & M               & u & y          & \rangle, & \text{if } o=5_{\mathtt{BPA}}\ \wedge\ a>0,\\
+      \langle & i+2 & a     & M               & u & y          & \rangle, & \text{if } o=5_{\mathtt{BPA}}\ \wedge\ a\le 0,\\
+      \langle & i+2 & a     & M_j\gets \sigma & v & y          & \rangle, & \text{if } o=6_{\mathtt{RD}}\ \wedge\ u=\sigma v,\\
+      \langle & i+2 & a     & M               & u & y\cdot M_j & \rangle, & \text{if } o=7_{\mathtt{PRI}},\\
       \langle & i   & a     & M               & u & y          & \rangle, & \text{otherwise.}
     \end{array}
   \right.
   \]
+  }
 
   and the halting configurations are simply \( F= \{c \in C \mid c \rightarrow c\}\).
     \end{definition}
@@ -135,8 +139,6 @@
 \end{frame}
 
 \begin{frame}{W-RASP: A Bounded Variant}
-  \newcommand{\diff}[1]{\textcolor{orange}{#1}}
-
   Fix \(w,m,n,\ell,s\in\mathbb N\), assume \(\W=\mathbb F_2^w\), and for \(P:\W^{2m\leq n}\) define:
   \[
     \mathcal R^{(w,n,\ell,s)}=\langle C_w,c_0,\to,F\rangle,
@@ -186,6 +188,7 @@
 
 \begin{frame}{Heapless Array Language}
   \vspace{-0.2cm}
+  We define a simple array langauge for functions $f: \mathbb{N}^{\lambda\leq \ell} \rightarrow \mathbb{N}^{\eta\leq\sigma}$:
   {
   \[
     \begin{aligned}
@@ -201,11 +204,11 @@
   \]
   }
 
-  Reserve disjoint memory regions \(p_{0\dots L-1}\), \(q_{0\dots e-1}\), and \(r_{0\dots \gamma-1}\) for arrays \(\texttt{ipt}: \mathbb{W}^{L \le \ell}\), \(\texttt{opt}: \mathbb{W}^{e \le s}\) and \(\texttt{scr}: \mathbb{W}^{\gamma \le \mu}\), with \((5+\ell+s+\mu+2m)\le n\) and interpret array indexing modulo declared length, so \( \llbracket\alpha\rrbracket_z := M_{2m + \llbracket\alpha\rrbracket + (z\bmod |\alpha|)}. \)
+  \texttt{ipt}, \texttt{opt} and \texttt{scr} refer to the \textit{input}, \textit{output} and \textit{scratch} buffers, respectively. Permissions are RO for \texttt{ipt} and RW for \texttt{opt}, \texttt{scr}. \texttt{hlt} returns immediately and \texttt{brk} escapes the local scope.
 \end{frame}
 
 \begin{frame}{Heapless Array Lowering}
-  \vspace{-0.5cm}
+  \vspace{-0.9cm}
   \begin{center}
   \setlength{\fboxsep}{2pt}%
   \setlength{\fboxrule}{0.35pt}%
@@ -215,8 +218,8 @@
     \begin{mathpar}
       \inferrule*[right=\scriptsize\textsc{Fun}]
       {\Gamma[\kappa\mapsto \ell_f] \vdash B \Rightarrow C}
-      {\vdash \texttt{fun f0 ( ipt : I \char`\^\ N ) -> I \char `\^\ L}\texttt{ \{ }B\texttt{ \}}
-      \Rightarrow C\:{}^{\ell_f:}\keys{\texttt{PRI }$q_i$\!}\,{}_{i=0}^{L-1}\:\keys{\texttt{HLT}}}
+      {\vdash \texttt{fun f0 ( ipt : I \char`\^\ }\lambda\texttt{ ) -> I \char `\^\ }\eta\texttt{ \{ }B\texttt{ \}}
+      \Rightarrow C\:{}^{\ell_f:}\keys{\texttt{PRI }$q_i$\!}\,{}_{i=0}^{\eta-1}\:\keys{\texttt{HLT}}}
 
       \inferrule*[right=\scriptsize\textsc{Get}]
       { }
@@ -237,24 +240,24 @@
       {\Gamma \vdash I_1 \times I_2 \Rightarrow_a J_1\:\keys{\texttt{STO }$\nu$}\:J_2\:\keys{\texttt{MUL }$\nu$}}
 
       \inferrule*[right=\scriptsize\textsc{Ife}]
-      {\Gamma \vdash I \Rightarrow_a J \\
+      {\Gamma \vdash H \Rightarrow_a J \\
       \Gamma \vdash B_1 \Rightarrow C_1 \\
       \Gamma \vdash B_2 \Rightarrow C_2}
-      {\Gamma \vdash \texttt{ife }I\ \texttt{\{}B_1\texttt{\}}\ \texttt{\{}B_2\texttt{\}}
+      {\Gamma \vdash \texttt{ife }H\ \texttt{\{}B_1\texttt{\}}\ \texttt{\{}B_2\texttt{\}}
       \Rightarrow
       J\:\keys{\texttt{BNZ }$\ell_t$\!}\:C_2\:\keys{\texttt{JMP }$\ell_e$\!}\:{}^{\ell_t:}\,C_1\:{}^{\ell_e:}}
 
       \inferrule*[right=\scriptsize\textsc{While}]
-      {\Gamma \vdash I \Rightarrow_a J \\
+      {\Gamma \vdash H \Rightarrow_a J \\
       \Gamma[\kappa\mapsto \ell_e] \vdash B \Rightarrow C}
-      {\Gamma \vdash \texttt{whl }I\ \texttt{\{}B\texttt{\}}
+      {\Gamma \vdash \texttt{whl }H\ \texttt{\{}B\texttt{\}}
       \Rightarrow
       {}^{\ell_h:}\,J\:\keys{\texttt{BNZ }$\ell_b$\!}\:\keys{\texttt{JMP }$\ell_e$\!}\:
       {}^{\ell_b:}\,C\:\keys{\texttt{JMP }$\ell_h$\!}\:{}^{\ell_e:}}
       \hspace{0.1cm}
       \inferrule*[right=\scriptsize\textsc{Break}]
       {\Gamma(\kappa)=\ell}
-      {\Gamma \vdash \texttt{brk} \Rightarrow \keys{\texttt{JMP }\ell}}
+      {\Gamma \vdash \texttt{brk} \Rightarrow \keys{\texttt{JMP }$\ell$}}
 
       \inferrule*[right=\scriptsize\textsc{Seq}]
       {\Gamma \vdash B \Rightarrow C_B \\
@@ -273,7 +276,67 @@
   \end{center}
 
   \vspace{-0.1cm}
-  \small We write \(\Gamma \vdash E \Rightarrow A\) when the \(A\) implements \(E\), and \(\Gamma \vdash E \Rightarrow_a A\) when \(A\) implements \(E\), leaving value \(a\) in the accumulator. Let \(\nu\) be a reserved memory address and desugar \keys{\texttt{JMP }$\ell$} as \keys{\texttt{LOD }$1$}\:\keys{\texttt{BNZ }$\ell$}.
+  \small We write \underline{\(\Gamma \vdash E \Rightarrow A\)} when the \(A\) implements \(E\), and \underline{\(\Gamma \vdash E \Rightarrow_a A\)} when \(a\) is left in the accumulator. Desugar \keys{\texttt{JMP }$\ell$} as \keys{\texttt{LOD }$1$} \keys{\texttt{BNZ }$\ell$} and interpret array indexing modulo declared length, i.e., \( \llbracket\alpha\rrbracket_z := M_{2m + \llbracket\alpha\rrbracket + (z\bmod |\alpha|)}. \)
+\end{frame}
+
+\begin{frame}{Memory Layout}
+  \small
+  \vspace{-0.25cm}
+  Reserve disjoint memory regions \(p_{0\dots \lambda-1}\), \(q_{0\dots \eta-1}\), and \(r_{0\dots \gamma-1}\) for arrays \(\texttt{ipt}: \mathbb{W}^{\lambda \le \ell}\), \(\texttt{opt}: \mathbb{W}^{\eta \le \sigma}\) and \(\texttt{scr}: \mathbb{W}^{\gamma \le \mu}\), with \((5+\ell+\sigma+\mu+2m)\le n\). The hypervisor stores each VM as one contiguous 32-bit row; RASP instructions address only \(M_v\).
+
+  \vspace{0.4cm}
+  \begin{adjustbox}{max width=\textwidth}
+  \(
+    \mathrm{VM}_v =
+    \overbrace{[
+      \mathtt{pc},\mathtt{acc},\mathtt{steps},\mathtt{halted},
+      \mathtt{outCount},\mathtt{out}_0,\mathtt{out}_1,\mathtt{out}_2
+    ]}^{H_v:\ \text{hypervisor sidecar}}
+    \ \Vert\
+    \overbrace{[\,M_v[0],\ldots,M_v[n-1]\,]}^{M_v:\ \text{RASP-addressable memory}},
+    \quad n\approx 2^8.
+  \)
+  \end{adjustbox}
+
+  \vspace{-0.15cm}
+  \[
+    \mathtt{MEM\_BASE}=|H_v|=8,\qquad
+    \mathrm{VM}_v[\mathtt{MEM\_BASE}+a]=M_v[a].
+  \]
+
+  \vspace{-0.15cm}
+  \begin{adjustbox}{max width=\textwidth}
+  \(
+  M_v =
+  \big[
+    \overbrace{
+      \underset{\mathtt{LOD}\ 0}{1},
+      \underset{\mathtt{ADD}\ p_0}{66},
+      \underset{\mathtt{STO}\ q_0}{76},
+      \underset{\mathtt{LOD}\ 1}{9},
+      \underset{\mathtt{BNZ}\ 6}{53},
+      \underset{\mathtt{PRI}\ q_0}{79},
+      \underset{\mathtt{HLT}}{0},\ldots
+    }^{P_{0..c-1}\ \text{packed code }((\mathtt{arg}\ll3)\mid\mathtt{op})},
+    \overbrace{\underbrace{0,\ldots,0}_{\ell}}^{\mathtt{ipt}=p},
+    \overbrace{\underbrace{0,\ldots,0}_{s}}^{\mathtt{opt}=q},
+    \overbrace{\underbrace{0,\ldots,0}_{\gamma=9}}^{\mathtt{scr}=r},
+    \underset{\nu\ \text{scratch}}{0},
+    \overbrace{0,\ldots,0}^{\text{padding}}
+  \big]
+  \)
+  \end{adjustbox}
+
+  \vspace{-0.05cm}
+  \[
+    p=c,\qquad q=c+\ell,\qquad r=c+\ell+s,\qquad
+    \nu=c+\ell+s+\gamma,\qquad c+\ell+s+\gamma+1\le n.
+  \]
+  \vspace{-0.2cm}
+  \[
+    \text{Arithmetic keeps the low 29 bits;}\quad
+    \mathtt{ipt}/\mathtt{opt}/\mathtt{scr}\text{ indices wrap modulo }\ell,s,\gamma.
+  \]
 \end{frame}
 
 \begin{frame}{Evaluation: Runtime}
@@ -335,32 +398,32 @@
       ymin=1,
       ymax=1000000,
       xmin=0,
-      xmax=102.5,
+      xmax=103,
       enlarge x limits=false,
-      xtick={10,20,30,40,50,60,70,80,90,101},
-      xticklabels={10,20,30,40,50,60,70,80,90,100+},
+      xtick={10,20,30,40,50,60,70,80,90,100,101},
+      xticklabels={10,20,30,40,50,60,70,80,90,{$[10^2,10^6)$},{$10^6{\sim}\infty$}},
       xticklabel style={rotate=45, anchor=east},
     ]
       \addplot+[fill=lightgray] coordinates {
-        (1,1.2) (2,2.2) (3,3.1) (4,4.1) (5,5.1) (6,6.0) (7,7.0) (8,8.0)
-        (1,0) (2,0) (3,0) (4,0) (5,15462) (6,465523) (7,36166) (8,442713)
-        (9,139123) (10,333902) (11,305299) (12,265647) (13,421766) (14,254552)
-        (15,417864) (16,290138) (17,364210) (18,336307) (19,320446) (20,346245)
-        (21,301765) (22,318766) (23,300117) (24,275325) (25,292748) (26,246539)
-        (27,264192) (28,194893) (29,195236) (30,145839) (31,131315) (32,108096)
-        (33,51915) (34,56625) (35,26557) (36,24251) (37,14758) (38,9242)
-        (39,7167) (40,4155) (41,2064) (42,1528) (43,753) (44,445) (45,353)
-        (46,129) (47,207) (48,75) (49,40) (50,32) (51,28) (52,20) (53,13)
-        (54,5) (55,11) (56,3) (57,3) (58,2) (59,1) (60,4) (61,2) (62,2)
-        (63,0) (64,1) (65,3) (66,0) (67,1) (68,1) (69,1) (70,2) (71,2)
-        (72,0) (73,4) (74,1) (75,5) (76,3) (77,2) (78,3) (79,2) (80,0)
-        (81,4) (82,0) (83,1) (84,2) (85,4) (86,2) (87,3) (88,1) (89,5)
-        (90,2) (91,1) (92,0) (93,3) (94,0) (95,2) (96,0) (97,1) (98,1) (99,1)
+        (1,0) (2,0) (3,0) (4,0) (5,11949) (6,11828) (7,72097) (8,75214)
+        (9,115990) (10,131440) (11,156142) (12,182530) (13,215934) (14,232771)
+        (15,264785) (16,231876) (17,256198) (18,242506) (19,257656) (20,261201)
+        (21,261929) (22,255723) (23,252844) (24,246236) (25,243821) (26,241862)
+        (27,235431) (28,229969) (29,221729) (30,214793) (31,208180) (32,200879)
+        (33,194560) (34,187593) (35,178581) (36,169924) (37,162759) (38,153716)
+        (39,145518) (40,135943) (41,126372) (42,116195) (43,108277) (44,97265)
+        (45,87474) (46,76340) (47,65987) (48,56914) (49,47056) (50,38013)
+        (51,29896) (52,21811) (53,16876) (54,11536) (55,7780) (56,5730)
+        (57,2643) (58,1894) (59,744) (60,391) (61,322) (62,120) (63,61)
+        (64,52) (65,30) (66,23) (67,21) (68,17) (69,8) (70,12) (71,8)
+        (72,8) (73,6) (74,6) (75,3) (76,2) (77,3) (78,1) (79,4) (80,7)
+        (81,1) (82,5) (83,1) (84,5) (85,0) (86,1) (87,2) (88,1) (89,4)
+        (90,1) (91,0) (92,1) (93,0) (94,1) (95,1) (96,1) (97,3) (98,0) (99,0)
       };
-      \addplot+[fill=oiVermilion, draw=oiVermilion, bar width=0.7pt] coordinates { (100,269104) };
-      \addplot+[fill=oiOrange, draw=oiOrange, bar width=0.7pt] coordinates { (95,211) };
-      \node[oiOrange, align=right, anchor=east, font=] at (axis cs:101, 211) {\fontsize{4.6}{4}\selectfont$\tau_h\in [10^2,10^6-1]\to$};
-      \node[oiVermilion, align=right, anchor=east, font=] at (axis cs:103, 270000) {\fontsize{4.6}{4}\selectfont$10^6\le \tau_h \approx \infty\to$};
+      \addplot+[fill=oiOrange, draw=oiOrange, bar width=0.7pt] coordinates { (100,664) };
+      \addplot+[fill=oiVermilion, draw=oiVermilion, bar width=0.7pt] coordinates { (101,217293) };
+      \node[oiOrange, align=right, anchor=east, font=] at (axis cs:100, 664) {\fontsize{4.6}{4}\selectfont$[10^2,10^6)\to$};
+      \node[oiVermilion, align=right, anchor=east, font=] at (axis cs:103, 220000) {\fontsize{4.6}{4}\selectfont$10^6\le \tau_h \approx \infty\to$};
     \end{axis}
   \end{tikzpicture}
 

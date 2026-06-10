@@ -2,8 +2,10 @@ package org.example
 
 import ai.hypergraph.kaliningraph.automata.completeWithSparseGRE
 import ai.hypergraph.kaliningraph.parsing.tmLst
-import ai.hypergraph.kaliningraph.rasp.compileToRASPBytecode
-import ai.hypergraph.kaliningraph.repair.loopyHeapless
+import java.io.BufferedOutputStream
+import java.io.DataOutputStream
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.streams.asStream
 
 fun main() {
@@ -23,4 +25,24 @@ fun main() {
     }
 
   writeVmInitialStates(sampledProgramWords)
+}
+
+fun writeVmInitialStates(programWords: IntArray, vmCount: Int = TOTAL_PROGRAMS, file: File = DEFAULT_VM_INITIAL_STATES_FILE) {
+  file.parentFile?.mkdirs()
+  println("Writing to ${file.absolutePath}")
+  DataOutputStream(BufferedOutputStream(FileOutputStream(file))).use { out ->
+    var vm = 0
+    while (vm < vmCount) {
+      var i = 0
+      while (i < MEM_BASE) { out.writeInt(0); i++ }
+
+      val src = vm * MEM_WORDS
+      i = 0
+      while (i < MEM_WORDS) { out.writeInt(programWords[src + i]); i++ }
+
+      out.writeInt(Int.MAX_VALUE)
+      vm++
+    }
+  }
+  println("Wrote ${file.length()} bytes to ${file.absolutePath}")
 }

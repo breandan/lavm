@@ -1,0 +1,372 @@
+%! Author = breandan
+%! Date = 11/5/25
+
+\documentclass{beamer}
+
+% Basic fonts & symbols
+\usepackage[T1]{fontenc}
+\usepackage{tgcursor}
+\usepackage{booktabs}
+\usepackage{pifont}
+\newcommand{\cmark}{\ding{51}} % check
+\newcommand{\xmark}{\ding{55}} % cross
+\usepackage{multicol}
+\usepackage[table]{xcolor}
+
+\usepackage{tikz-cd}
+\usepackage{adjustbox}
+
+\usepackage{txfonts}
+\usepackage{soul}
+\usepackage{mathtools}
+\usepackage{mathpartir}
+\usepackage[os=mac]{menukeys}
+
+\usepackage[normalem]{ulem}
+\usepackage{tikz}
+\usetikzlibrary{decorations.pathmorphing,calc,automata,arrows}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepgfplotslibrary{groupplots}
+
+%\usefonttheme[onlymath]{serif}
+%\usefonttheme{professionalfonts}
+
+
+\definecolor{Light}{gray}{.90}
+\sethlcolor{Light}
+\definecolor{oiBlue}{HTML}{0072B2}
+\definecolor{oiGreen}{HTML}{009E73}
+\definecolor{oiOrange}{HTML}{E69F00}
+\definecolor{oiVermilion}{HTML}{D55E00}
+\definecolor{oiBrown}{HTML}{8C564B}
+
+\newcommand{\codett}[1]{\texttt{\hl{#1}}}
+\DeclareMathOperator*{\largecomma}{\mathop{\vcenter{\hbox{\Huge\texttt{,}}}}}
+\newcommand{\bycommas}{%
+  \mathop{\vphantom{\sum}\mathchoice{\Large ,}{,}{,}{,}}\displaylimits
+}
+\newcommand{\cev}[1]{\reflectbox{\ensuremath{\vec{\reflectbox{\ensuremath{#1}}}}}}
+\newcommand\hmmax{0}
+\newcommand\bmmax{0}
+\usepackage{amssymb}
+\usepackage{centernot}
+\usepackage{bussproofs}
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\SetMathAlphabet{\mathcal}{bold}{OMS}{cmsy}{b}{n}
+
+\newcommand{\nt}[1]{\texttt{#1}}
+\newcommand{\tok}[1]{\codett{#1}}
+\newcommand{\gap}{\;\;}
+\newcommand{\cjoin}[2]{\mathop{\largecomma}\limits_{#1}^{#2}}
+
+\newcommand{\bs}{\blacksquare}
+\newcommand{\ws}{\square}
+
+\newcommand{\T}{\mathbb{T}}
+\newcommand{\ttlb}{\{}   % left brace token
+\newcommand{\ttrb}{\}}   % right brace token
+\newcommand{\ttus}{\_}   % underscore token (for f_*)
+\newcommand{\W}{\mathbb W}
+
+\pgfplotsset{
+  runtimeplot/.style={
+    width=0.89\textwidth,
+    height=0.58\textheight,
+    ymin=0,
+    axis line style={draw=black!45, line width=0.35pt},
+    tick style={draw=black!45, line width=0.35pt},
+    ymajorgrids=true,
+    grid style={draw=black!8, line width=0.25pt},
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+    title style={font=\small},
+    every axis plot/.append style={draw=none},
+  },
+  haltplot/.style={
+    width=0.82\textwidth,
+    height=0.5\textheight,
+    axis line style={draw=black!45, line width=0.35pt},
+    tick style={draw=black!45, line width=0.35pt},
+    ymajorgrids=true,
+    grid style={draw=black!8, line width=0.25pt},
+    tick label style={font=\scriptsize},
+    label style={font=\scriptsize},
+    title style={font=\small},
+    every axis plot/.append style={draw=none},
+  }
+}
+
+% Metadata
+\title{Towards a Linear-Algebraic Hypervisor}
+\author{Breandan Mark Considine}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{The RASP Model }
+  \begin{definition}[Cook \& Reckhow, 1973]
+  A RASP machine, \(\mathcal{R} = \langle C,c_0,\to,F\rangle\) consists of a configuration space, \( \langle i,a,M,u,y\rangle: C=\mathbb N\times\mathbb Z\times\mathbb Z^{\mathbb N}\times\mathbb Z^*\times\mathbb Z^* \). A RAS program is a vector \(P: (\mathbb Z\times\mathbb Z)^m\) packed with an \textit{input} \(x: \mathbb{Z}^*\), into an \textit{initial configuration}, \(c_0=\big\langle 0,0,M'_{0..2m} \gets P,x0,\varepsilon \big\rangle.\)
+  Let \(\langle o,j\rangle=\langle M_i,M_{i+1}\rangle\) denote the \textit{opcode} and \textit{operand} and $\rightarrow$ be defined as:
+  \[\small
+  \langle i,a,M,u,y\rangle \rightarrow
+  \left\{
+    \begin{array}{@{}c@{}c@{\:,\:}l@{\:,\:}l@{\:,\:}l@{\:,\:}l@{}c@{\quad}l@{}}
+      \langle & i+2 & j     & M               & u & y          & \rangle, & \text{if } o=1_\texttt{LOD},\\
+      \langle & i+2 & a+M_j & M               & u & y          & \rangle, & \text{if } o=2_\texttt{ADD},\\
+      \langle & i+2 & a-M_j & M               & u & y          & \rangle, & \text{if } o=3_\texttt{SUB},\\
+      \langle & i+2 & a     & M_j\gets a      & u & y          & \rangle, & \text{if } o=4_\texttt{STO},\\
+      \langle & j   & a     & M               & u & y          & \rangle, & \text{if } o=5_\texttt{BPA}\ \wedge\ a>0,\\
+      \langle & i+2 & a     & M               & u & y          & \rangle, & \text{if } o=5_\texttt{BPA}\ \wedge\ a\le 0,\\
+      \langle & i+2 & a     & M_j\gets \sigma & v & y          & \rangle, & \text{if } o=6_\texttt{RD}\ \wedge\ u=\sigma v,\\
+      \langle & i+2 & a     & M               & u & y\cdot M_j & \rangle, & \text{if } o=7_\texttt{PRI},\\
+      \langle & i   & a     & M               & u & y          & \rangle, & \text{otherwise.}
+    \end{array}
+  \right.
+  \]
+
+  and the halting configurations are simply \( F= \{c \in C \mid c \rightarrow c\}\).
+    \end{definition}
+
+\end{frame}
+
+\begin{frame}{W-RASP: A Bounded Variant}
+  \newcommand{\diff}[1]{\textcolor{orange}{#1}}
+
+  Fix \(w,m,n,\ell,s\in\mathbb N\), assume \(\W=\mathbb F_2^w\), and for \(P:\W^{2m\leq n}\) define:
+  \[
+    \mathcal R^{(w,n,\ell,s)}=\langle C_w,c_0,\to,F\rangle,
+    \quad
+    C_w=\W\times\W\times\W^n\times\W^{\ell+1}\times\W^{s+1}.
+  \]
+%  \[
+%    c_0(P,x)=\big\langle
+%    0_w,0_w,P\,0_w^{\,n-2m},x0_w^{\ell-|x|},0_w^{s+1}
+%    \big\rangle.
+%  \]
+
+  The transition operator takes a configuration $\langle i,a,M,u,y\rangle: C_w$ to:
+  \[\small
+  \left\{
+    \begin{array}{@{}c@{}c@{\:,\:}l@{\:,\:}l@{\:,\:}l@{\:,\:}l@{}c@{\quad}l@{}}
+      \langle & i\,\diff{\oplus}\, 2\diff{_w} & j                         & M & u & y                         & \rangle, & \text{if } o=1_{\texttt{LOD}},\\
+      \langle & i\,\diff{\oplus}\, 2\diff{_w} & a\,\diff{\oplus}\, M_{j\diff{\bmod n}}       & M & u & y                         & \rangle, & \text{if } o=2_{\texttt{ADD}},\\
+      \langle & i\,\diff{\oplus}\, 2\diff{_w} & a\,\diff{\otimes}\, M_{j\diff{\bmod n}}      & M & u & y                         & \rangle, & \text{if } o=3_{\diff{\texttt{MUL}}},\\
+      \langle & i\,\diff{\oplus}\, 2\diff{_w} & a                         & M_{j\diff{\bmod n}}\gets a & u & y        & \rangle, & \text{if } o=4_{\texttt{STO}},\\
+      \langle & j                             & a                         & M & u & y                         & \rangle, & \text{if } o=5_{\diff{\texttt{BNZ}}}\ \wedge\ a \diff{\neq} 0,\\
+      \langle & i\,\diff{\oplus}\, 2\diff{_w} & a                         & M & u & y                         & \rangle, & \text{if } o=5_{\diff{\texttt{BNZ}}}\ \wedge\ a \diff{=} 0,\\
+      \langle & i\,\diff{\oplus}\, 2\diff{_w} & a                         & M_{j\diff{\bmod n}}\gets \diff{u^\bullet} & \diff{u^\triangleright} & y & \rangle, & \text{if } o=6_{\texttt{RD}}\ \wedge\ \diff{u_0}\diff{<}\diff{\ell},\\
+      \langle & i\,\diff{\oplus}\, 2\diff{_w} & a                         & M & u & y \diff{::} M_{j\diff{\bmod n}}          & \rangle, & \text{if } o=7_{\texttt{PRI}},\\
+      \langle & i                             & a                         & M & u & y                         & \rangle, & \text{otherwise.}
+    \end{array}
+  \right.
+  \]
+  \[\small
+    \langle o,j\rangle:=\big\langle M_{\,i\bmod n},M_{\,(i\,\oplus 1)\bmod n}\big\rangle,
+    \qquad
+    M_j\gets a := \big[\delta_{jk}a+(1-\delta_{jk})M_k\big]_{k=0}^{n-1}.
+  \]
+  \[\small
+    \diff{u^\bullet}:=u_{\min(u_0+1,\ell)},\qquad
+    \diff{u^\triangleright}:=u_0\gets\min(u_0+1,\ell),
+  \]
+  \[\small
+    y\diff{::}z=
+    \begin{cases}
+      (y_{y_0+1}\gets z)_0\gets y_0+1,&y_0<s,\\
+      y,&\text{otherwise.}
+    \end{cases}
+  \]
+
+\end{frame}
+
+\begin{frame}{Heapless Array Language}
+  \vspace{-0.2cm}
+  {
+  \[
+    \begin{aligned}
+      \texttt{F } &::= \texttt{ fun f0 ( ipt : W \char`\^\ N ) -> W \char`\^\ N \{ B \} } \\
+      \texttt{N } &::= \texttt{ 1 } \mid \texttt{ 2 }  \mid \texttt{ 3 } \mid \texttt{ 4 } \mid \texttt{ 5 } \mid \texttt{ 6 } \mid \texttt{ 7 } \mid \texttt{ 8 } \mid \texttt{ 9 } \\
+      \texttt{B } &::= \texttt{ S } \mid \texttt{ S ; B } \mid \texttt{ hlt } \mid \texttt{ brk} \\
+      \texttt{S } &::= \texttt{ P = E } \mid \texttt{ ife G \{ B \} \{ B \} } \mid \texttt{ whl G \{ B \}}\\
+      \texttt{Z } &::= \texttt{ 0 } \mid \texttt{ N}\\
+      \texttt{G } &::= \texttt{ ipt [ Z ] } \mid \texttt{ scr [ Z ] } \mid \texttt{ opt [ Z ]} \\
+      \texttt{P } &::= \texttt{ scr [ Z ] } \mid \texttt{ opt [ Z ]} \\
+      \texttt{E } &::= \texttt{ G + G } \mid \texttt{ G * G } \mid \texttt{ G + Z } \mid \texttt{ G * Z } \mid \texttt{ G } \mid \texttt{ Z }\\
+    \end{aligned}
+  \]
+  }
+
+  Reserve disjoint memory regions \(p_{0\dots L-1}\), \(q_{0\dots e-1}\), and \(r_{0\dots \gamma-1}\) for arrays \(\texttt{ipt}: \mathbb{W}^{L \le \ell}\), \(\texttt{opt}: \mathbb{W}^{e \le s}\) and \(\texttt{scr}: \mathbb{W}^{\gamma \le \mu}\), with \((5+\ell+s+\mu+2m)\le n\) and interpret array indexing modulo declared length, so \( \llbracket\alpha\rrbracket_z := M_{2m + \llbracket\alpha\rrbracket + (z\bmod |\alpha|)}. \)
+\end{frame}
+
+\begin{frame}{Heapless Array Lowering}
+  \vspace{-0.5cm}
+  \begin{center}
+  \setlength{\fboxsep}{2pt}%
+  \setlength{\fboxrule}{0.35pt}%
+  \fbox{%
+  \begin{adjustbox}{max height=0.66\textheight,center}
+  \begin{scriptsize}
+    \begin{mathpar}
+      \inferrule*[right=\scriptsize\textsc{Fun}]
+      {\Gamma[\kappa\mapsto \ell_f] \vdash B \Rightarrow C}
+      {\vdash \texttt{fun f0 ( ipt : I \char`\^\ N ) -> I \char `\^\ L}\texttt{ \{ }B\texttt{ \}}
+      \Rightarrow C\:{}^{\ell_f:}\keys{\texttt{PRI }$q_i$\!}\,{}_{i=0}^{L-1}\:\keys{\texttt{HLT}}}
+
+      \inferrule*[right=\scriptsize\textsc{Get}]
+      { }
+      {\Gamma \vdash \alpha[z] \Rightarrow_a \keys{\texttt{LOD }$0$}\:\keys{\texttt{ADD }$\llbracket\alpha\rrbracket_z$\!}}
+\hspace{0.2cm}
+      \inferrule*[right=\scriptsize\textsc{Put}]
+      {\Gamma \vdash E \Rightarrow_a A}
+      {\Gamma \vdash \alpha[z] \texttt{ = } E \Rightarrow A\:\keys{\texttt{STO }$\llbracket\alpha\rrbracket_z$\!}}
+
+      \inferrule*[right=\scriptsize\(\oplus\)]
+      {\Gamma \vdash I_1 \Rightarrow_a J_1 \\
+      \Gamma \vdash I_2 \Rightarrow_a J_2}
+      {\Gamma \vdash I_1 + I_2 \Rightarrow_a J_1\:\keys{\texttt{STO }$\nu$}\:J_2\:\keys{\texttt{ADD }$\nu$}}
+      \hspace{0.1cm}
+      \inferrule*[right=\scriptsize\(\otimes\)]
+      {\Gamma \vdash I_1 \Rightarrow_a J_1 \\
+      \Gamma \vdash I_2 \Rightarrow_a J_2}
+      {\Gamma \vdash I_1 \times I_2 \Rightarrow_a J_1\:\keys{\texttt{STO }$\nu$}\:J_2\:\keys{\texttt{MUL }$\nu$}}
+
+      \inferrule*[right=\scriptsize\textsc{Ife}]
+      {\Gamma \vdash I \Rightarrow_a J \\
+      \Gamma \vdash B_1 \Rightarrow C_1 \\
+      \Gamma \vdash B_2 \Rightarrow C_2}
+      {\Gamma \vdash \texttt{ife }I\ \texttt{\{}B_1\texttt{\}}\ \texttt{\{}B_2\texttt{\}}
+      \Rightarrow
+      J\:\keys{\texttt{BNZ }$\ell_t$\!}\:C_2\:\keys{\texttt{JMP }$\ell_e$\!}\:{}^{\ell_t:}\,C_1\:{}^{\ell_e:}}
+
+      \inferrule*[right=\scriptsize\textsc{While}]
+      {\Gamma \vdash I \Rightarrow_a J \\
+      \Gamma[\kappa\mapsto \ell_e] \vdash B \Rightarrow C}
+      {\Gamma \vdash \texttt{whl }I\ \texttt{\{}B\texttt{\}}
+      \Rightarrow
+      {}^{\ell_h:}\,J\:\keys{\texttt{BNZ }$\ell_b$\!}\:\keys{\texttt{JMP }$\ell_e$\!}\:
+      {}^{\ell_b:}\,C\:\keys{\texttt{JMP }$\ell_h$\!}\:{}^{\ell_e:}}
+      \hspace{0.1cm}
+      \inferrule*[right=\scriptsize\textsc{Break}]
+      {\Gamma(\kappa)=\ell}
+      {\Gamma \vdash \texttt{brk} \Rightarrow \keys{\texttt{JMP }\ell}}
+
+      \inferrule*[right=\scriptsize\textsc{Seq}]
+      {\Gamma \vdash B \Rightarrow C_B \\
+      \Gamma \vdash S \Rightarrow C_S}
+      {\Gamma \vdash B\texttt{ ; }S \Rightarrow
+      C_B\:C_S}
+      \hspace{0.3cm}
+      \inferrule*[right=\scriptsize\textsc{Halt}]
+      { }
+      {\Gamma \vdash \texttt{hlt} \Rightarrow
+      \keys{\texttt{PRI }$q_i$\!}\,{}_{i=0}^{l-1}\:\keys{\texttt{HLT}}}
+    \end{mathpar}
+  \end{scriptsize}
+  \end{adjustbox}%
+  }
+  \end{center}
+
+  \vspace{-0.1cm}
+  \small We write \(\Gamma \vdash E \Rightarrow A\) when the \(A\) implements \(E\), and \(\Gamma \vdash E \Rightarrow_a A\) when \(A\) implements \(E\), leaving value \(a\) in the accumulator. Let \(\nu\) be a reserved memory address and desugar \keys{\texttt{JMP }$\ell$} as \keys{\texttt{LOD }$1$}\:\keys{\texttt{BNZ }$\ell$}.
+\end{frame}
+
+\begin{frame}{Evaluation: Runtime}
+  \scriptsize
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      runtimeplot,
+      title={Average runtime},
+      ylabel={Time (s)},
+      xlabel={Total VMs $(\times 10^6)$},
+      ymode=log,
+      log basis y={10},
+      ymin=0.5,
+      ymax=500,
+      xtick={1,2,3,4,5,6,7,8},
+      ybar=0.4pt,
+      bar width=2.4pt,
+      legend image post style={scale=0.6},
+      legend style={font=\fontsize{5.2}{6}\selectfont, at={(0.01,0.99)}, anchor=north west, draw=none, fill=none, legend columns=3}
+    ]
+      \addplot+[fill=gray] coordinates {(1,46.5) (2,95.2) (3,143.8) (4,188.9) (5,239.1) (6,282.0) (7,327.1) (8,382.6)};
+      \addlegendentry{M4 ($\times1$)}
+      \addplot+[fill=oiBlue] coordinates {(1,4.6) (2,8.9) (3,13.1) (4,18.6) (5,22.2) (6,26.8) (7,30.8) (8,35.3)};
+      \addlegendentry{M4 ($\times16$)}
+      \addplot+[fill=oiGreen] coordinates {(1,2.2) (2,4.3) (3,6.3) (4,8.3) (5,10.4) (6,12.4) (7,14.4) (8,16.5)};
+      \addlegendentry{A10G}
+      \addplot+[fill=oiBrown] coordinates {(1,1.1) (2,1.9) (3,2.8) (4,3.6) (5,4.5) (6,5.3) (7,6.2) (8,7.0)};
+      \addlegendentry{B200 ($\times1$)}
+      \addplot+[fill=oiVermilion] coordinates {(1,0.6) (2,0.9) (3,1.2) (4,1.5) (5,1.8) (6,2.0) (7,2.3) (8,2.6)};
+      \addlegendentry{B200 ($\times8$)}
+    \end{axis}
+  \end{tikzpicture}
+
+  \vspace{0.15cm}
+  \raggedright
+  \(w=32\), \(n=250\), \(\ell=10\), \(s=2\), \(\tau_{\max}=10^6\), \(d=8\times10^6\), \(L=100\).
+\end{frame}
+
+\begin{frame}{Evaluation: Halting Distribution}
+
+  \[
+    \Pr_{P' \sim \mathcal P_L}\Big(\Phi_w^{\tau_{\max}}\bigl(c_0(P'\Rightarrow P, x\sim \mathbb{F}_2^{w\cdot\text{arity}(P')})\bigr)\in F \bigm\vert L = |P'|\Big).
+  \]
+  \centering
+  \begin{tikzpicture}
+    \begin{axis}[
+      haltplot,
+      title={Halting distribution},
+      ylabel={Count},
+      xlabel={Halting steps $(\tau_h)$},
+      ybar,
+      ymode=log,
+      yticklabels={0,$10^2$,$10^4$,$10^6$},
+      log ticks with fixed point,
+      minor y tick num=4,
+      yticklabel style={/pgf/number format/fixed},
+      bar width=1pt,
+      ymin=1,
+      ymax=1000000,
+      xmin=0,
+      xmax=102.5,
+      enlarge x limits=false,
+      xtick={10,20,30,40,50,60,70,80,90,101},
+      xticklabels={10,20,30,40,50,60,70,80,90,100+},
+      xticklabel style={rotate=45, anchor=east},
+    ]
+      \addplot+[fill=lightgray] coordinates {
+        (1,1.2) (2,2.2) (3,3.1) (4,4.1) (5,5.1) (6,6.0) (7,7.0) (8,8.0)
+        (1,0) (2,0) (3,0) (4,0) (5,15462) (6,465523) (7,36166) (8,442713)
+        (9,139123) (10,333902) (11,305299) (12,265647) (13,421766) (14,254552)
+        (15,417864) (16,290138) (17,364210) (18,336307) (19,320446) (20,346245)
+        (21,301765) (22,318766) (23,300117) (24,275325) (25,292748) (26,246539)
+        (27,264192) (28,194893) (29,195236) (30,145839) (31,131315) (32,108096)
+        (33,51915) (34,56625) (35,26557) (36,24251) (37,14758) (38,9242)
+        (39,7167) (40,4155) (41,2064) (42,1528) (43,753) (44,445) (45,353)
+        (46,129) (47,207) (48,75) (49,40) (50,32) (51,28) (52,20) (53,13)
+        (54,5) (55,11) (56,3) (57,3) (58,2) (59,1) (60,4) (61,2) (62,2)
+        (63,0) (64,1) (65,3) (66,0) (67,1) (68,1) (69,1) (70,2) (71,2)
+        (72,0) (73,4) (74,1) (75,5) (76,3) (77,2) (78,3) (79,2) (80,0)
+        (81,4) (82,0) (83,1) (84,2) (85,4) (86,2) (87,3) (88,1) (89,5)
+        (90,2) (91,1) (92,0) (93,3) (94,0) (95,2) (96,0) (97,1) (98,1) (99,1)
+      };
+      \addplot+[fill=oiVermilion, draw=oiVermilion, bar width=0.7pt] coordinates { (100,269104) };
+      \addplot+[fill=oiOrange, draw=oiOrange, bar width=0.7pt] coordinates { (95,211) };
+      \node[oiOrange, align=right, anchor=east, font=] at (axis cs:101, 211) {\fontsize{4.6}{4}\selectfont$\tau_h\in [10^2,10^6-1]\to$};
+      \node[oiVermilion, align=right, anchor=east, font=] at (axis cs:103, 270000) {\fontsize{4.6}{4}\selectfont$10^6\le \tau_h \approx \infty\to$};
+    \end{axis}
+  \end{tikzpicture}
+
+  \vspace{0.05cm}
+  \raggedright
+  We plot programs by their halting number \(\tau_h\), the least \(\tau\) such that \(\Phi_w^\tau(c_0)=\Phi_w^{\tau+1}(c_0)\).
+\end{frame}
+
+\end{document}

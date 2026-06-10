@@ -149,9 +149,7 @@ struct HostState {
 
 static uint32_t read_be_u32(std::istream& in) {
   unsigned char b[4];
-  if (!in.read(reinterpret_cast<char*>(b), 4)) {
-    throw std::runtime_error("Unexpected EOF while reading VM state");
-  }
+  if (!in.read(reinterpret_cast<char*>(b), 4)) throw std::runtime_error("Unexpected EOF while reading VM state");
   return (static_cast<uint32_t>(b[0]) << 24) |
          (static_cast<uint32_t>(b[1]) << 16) |
          (static_cast<uint32_t>(b[2]) <<  8) |

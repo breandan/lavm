@@ -29,9 +29,9 @@
 \pgfplotsset{compat=1.18}
 \usepgfplotslibrary{groupplots}
 
-%\usefonttheme[onlymath]{serif}
-%\usefonttheme{professionalfonts}
-
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{algorithmicx}
 
 \definecolor{Light}{gray}{.90}
 \sethlcolor{Light}
@@ -139,11 +139,11 @@
 \end{frame}
 
 \begin{frame}{W-RASP: A Bounded Variant}
-  Fix \(w,m,n,\ell,s\in\mathbb N\), assume \(\W=\mathbb F_2^w\), and for \(P:\W^{2m\leq n}\) define:
+  Fix \(w,n,\ell,s\in\mathbb N\), assume \(\W=\mathbb F_2^w\) and define the W-RASP as:
   \[
     \mathcal R^{(w,n,\ell,s)}=\langle C_w,c_0,\to,F\rangle,
     \quad
-    C_w=\W\times\W\times\W^n\times\W^{\ell+1}\times\W^{s+1}.
+    C_w=\W\times\W\times\W^n\times\W^{\ell}\times\W^{\sigma}.
   \]
 %  \[
 %    c_0(P,x)=\big\langle
@@ -204,11 +204,11 @@
   \]
   }
 
-  \texttt{ipt}, \texttt{opt} and \texttt{scr} refer to the \textit{input}, \textit{output} and \textit{scratch} buffers, respectively. Permissions are RO for \texttt{ipt} and RW for \texttt{opt}, \texttt{scr}. \texttt{hlt} returns immediately and \texttt{brk} escapes the local scope.
+  --\:\:\texttt{ipt}, \texttt{opt} and \texttt{scr} refer to the \textit{input}, \textit{output} and \textit{scratch} buffers.\\--\:\:Grammar grants RO permission for \texttt{ipt} and R+W for \texttt{opt}, \texttt{scr}.\\--\:\:\texttt{hlt} returns immediately and \texttt{brk} escapes the local scope.
 \end{frame}
 
 \begin{frame}{Heapless Array Lowering}
-  \vspace{-0.9cm}
+  \vspace{-0.7cm}
   \begin{center}
   \setlength{\fboxsep}{2pt}%
   \setlength{\fboxrule}{0.35pt}%
@@ -217,43 +217,43 @@
   \begin{scriptsize}
     \begin{mathpar}
       \inferrule*[right=\scriptsize\textsc{Fun}]
-      {\Gamma[\kappa\mapsto \ell_f] \vdash B \Rightarrow C}
+      {\Gamma[\kappa\mapsto \ell_f, \lambda, \eta] \vdash B \Rightarrow C}
       {\vdash \texttt{fun f0 ( ipt : I \char`\^\ }\lambda\texttt{ ) -> I \char `\^\ }\eta\texttt{ \{ }B\texttt{ \}}
-      \Rightarrow C\:{}^{\ell_f:}\keys{\texttt{PRI }$q_i$\!}\,{}_{i=0}^{\eta-1}\:\keys{\texttt{HLT}}}
+      \Rightarrow \keys{\texttt{RD }$\rho_i$\!}\,{}_{i=0}^{\lambda-1}\ C\ {}^{\ell_f:}\keys{\texttt{PRI }$\omega_i$\!}\,{}_{i=0}^{\eta-1}\ \keys{\texttt{HLT}}}
 
       \inferrule*[right=\scriptsize\textsc{Get}]
       { }
-      {\Gamma \vdash \alpha[z] \Rightarrow_a \keys{\texttt{LOD }$0$}\:\keys{\texttt{ADD }$\llbracket\alpha\rrbracket_z$\!}}
+      {\Gamma \vdash \rho[z] \Rightarrow_a \keys{\texttt{LOD }$0$}\ \keys{\texttt{ADD }$\llbracket\rho\rrbracket^\Gamma_z$\!}}
 \hspace{0.2cm}
       \inferrule*[right=\scriptsize\textsc{Put}]
       {\Gamma \vdash E \Rightarrow_a A}
-      {\Gamma \vdash \alpha[z] \texttt{ = } E \Rightarrow A\:\keys{\texttt{STO }$\llbracket\alpha\rrbracket_z$\!}}
+      {\Gamma \vdash \rho[z] \texttt{ = } E \Rightarrow A\ \keys{\texttt{STO }$\llbracket\rho\rrbracket^\Gamma_z$\!}}
 
       \inferrule*[right=\scriptsize\(\oplus\)]
       {\Gamma \vdash I_1 \Rightarrow_a J_1 \\
       \Gamma \vdash I_2 \Rightarrow_a J_2}
-      {\Gamma \vdash I_1 + I_2 \Rightarrow_a J_1\:\keys{\texttt{STO }$\nu$}\:J_2\:\keys{\texttt{ADD }$\nu$}}
+      {\Gamma \vdash I_1 + I_2 \Rightarrow_a J_1\ \keys{\texttt{STO }$\nu$}\ J_2\ \keys{\texttt{ADD }$\nu$}}
       \hspace{0.1cm}
       \inferrule*[right=\scriptsize\(\otimes\)]
       {\Gamma \vdash I_1 \Rightarrow_a J_1 \\
       \Gamma \vdash I_2 \Rightarrow_a J_2}
-      {\Gamma \vdash I_1 \times I_2 \Rightarrow_a J_1\:\keys{\texttt{STO }$\nu$}\:J_2\:\keys{\texttt{MUL }$\nu$}}
+      {\Gamma \vdash I_1 \times I_2 \Rightarrow_a J_1\ \keys{\texttt{STO }$\nu$}\ J_2\ \keys{\texttt{MUL }$\nu$}}
 
       \inferrule*[right=\scriptsize\textsc{Ife}]
       {\Gamma \vdash H \Rightarrow_a J \\
       \Gamma \vdash B_1 \Rightarrow C_1 \\
       \Gamma \vdash B_2 \Rightarrow C_2}
-      {\Gamma \vdash \texttt{ife }H\ \texttt{\{}B_1\texttt{\}}\ \texttt{\{}B_2\texttt{\}}
+      {\Gamma \vdash \texttt{ife}\ H\ \texttt{\{}\ B_1\ \texttt{\}}\ \texttt{\{}\ B_2\ \texttt{\}}
       \Rightarrow
-      J\:\keys{\texttt{BNZ }$\ell_t$\!}\:C_2\:\keys{\texttt{JMP }$\ell_e$\!}\:{}^{\ell_t:}\,C_1\:{}^{\ell_e:}}
+      J\ \keys{\texttt{BNZ }$\ell_t$\!}\ C_2\ \keys{\texttt{JMP }$\ell_e$\!}\ {}^{\ell_t:}\,C_1\ {}^{\ell_e:}}
 
       \inferrule*[right=\scriptsize\textsc{While}]
       {\Gamma \vdash H \Rightarrow_a J \\
       \Gamma[\kappa\mapsto \ell_e] \vdash B \Rightarrow C}
-      {\Gamma \vdash \texttt{whl }H\ \texttt{\{}B\texttt{\}}
+      {\Gamma \vdash \texttt{whl}\ H\ \texttt{\{}\ B\ \texttt{\}}
       \Rightarrow
-      {}^{\ell_h:}\,J\:\keys{\texttt{BNZ }$\ell_b$\!}\:\keys{\texttt{JMP }$\ell_e$\!}\:
-      {}^{\ell_b:}\,C\:\keys{\texttt{JMP }$\ell_h$\!}\:{}^{\ell_e:}}
+      {}^{\ell_h:}\,J\ \keys{\texttt{BNZ }$\ell_b$\!}\ \keys{\texttt{JMP }$\ell_e$\!}\
+      {}^{\ell_b:}\,C\ \keys{\texttt{JMP }$\ell_h$\!}\ {}^{\ell_e:}}
       \hspace{0.1cm}
       \inferrule*[right=\scriptsize\textsc{Break}]
       {\Gamma(\kappa)=\ell}
@@ -263,12 +263,12 @@
       {\Gamma \vdash B \Rightarrow C_B \\
       \Gamma \vdash S \Rightarrow C_S}
       {\Gamma \vdash B\texttt{ ; }S \Rightarrow
-      C_B\:C_S}
+      C_B\ C_S}
       \hspace{0.3cm}
       \inferrule*[right=\scriptsize\textsc{Halt}]
       { }
       {\Gamma \vdash \texttt{hlt} \Rightarrow
-      \keys{\texttt{PRI }$q_i$\!}\,{}_{i=0}^{l-1}\:\keys{\texttt{HLT}}}
+      \keys{\texttt{PRI }$\omega_i$\!}\,{}_{i=0}^{l-1}\ \keys{\texttt{HLT}}}
     \end{mathpar}
   \end{scriptsize}
   \end{adjustbox}%
@@ -276,67 +276,93 @@
   \end{center}
 
   \vspace{-0.1cm}
-  \small We write \underline{\(\Gamma \vdash E \Rightarrow A\)} when the \(A\) implements \(E\), and \underline{\(\Gamma \vdash E \Rightarrow_a A\)} when \(a\) is left in the accumulator. Desugar \keys{\texttt{JMP }$\ell$} as \keys{\texttt{LOD }$1$} \keys{\texttt{BNZ }$\ell$} and interpret array indexing modulo declared length, i.e., \( \llbracket\alpha\rrbracket_z := M_{2m + \llbracket\alpha\rrbracket + (z\bmod |\alpha|)}. \)
+  \small We write \underline{\(\Gamma \vdash E \Rightarrow A\)} when the \(A\) implements \(E\), and \underline{\(\Gamma \vdash E \Rightarrow_a A\)} when \(a\) is left in the accumulator. Desugar \keys{\texttt{JMP }$\ell$} as \keys{\texttt{LOD }$1$} \keys{\texttt{BNZ }$\ell$} and interpret array indexing modulo declared length, i.e., \( \llbracket\rho\rrbracket^\Gamma_z := M_{2m + \llbracket\rho\rrbracket + (z\bmod |\rho|)}. \)
 \end{frame}
 
 \begin{frame}{Memory Layout}
   \small
   \vspace{-0.25cm}
-  Reserve disjoint memory regions \(p_{0\dots \lambda-1}\), \(q_{0\dots \eta-1}\), and \(r_{0\dots \gamma-1}\) for arrays \(\texttt{ipt}: \mathbb{W}^{\lambda \le \ell}\), \(\texttt{opt}: \mathbb{W}^{\eta \le \sigma}\) and \(\texttt{scr}: \mathbb{W}^{\gamma \le \mu}\), with \((5+\ell+\sigma+\mu+2m)\le n\). The hypervisor stores each VM as one contiguous 32-bit row; RASP instructions address only \(M_v\).
+  Reserve disjoint memory regions \(\alpha_{0\dots \lambda-1}\), \(\omega_{0\dots \eta-1}\), and \(\zeta_{0\dots \gamma-1}\) for arrays \(\texttt{ipt}: \mathbb{W}^{\lambda \le \ell}\), \(\texttt{opt}: \mathbb{W}^{\eta \le \sigma}\) and \(\texttt{scr}: \mathbb{W}^{\gamma \le \mu}\), with \((5+\ell+\sigma+\mu+2m)\le n\). The hypervisor stores each VM as one contiguous 32-bit row vector. RASP instructions address only \(M_v\).
 
   \vspace{0.4cm}
-  \begin{adjustbox}{max width=\textwidth}
-  \(
-    \mathrm{VM}_v =
-    \overbrace{[
-      \mathtt{pc},\mathtt{acc},\mathtt{steps},\mathtt{halted},
-      \mathtt{outCount},\mathtt{out}_0,\mathtt{out}_1,\mathtt{out}_2
-    ]}^{H_v:\ \text{hypervisor sidecar}}
-    \ \Vert\
-    \overbrace{[\,M_v[0],\ldots,M_v[n-1]\,]}^{M_v:\ \text{RASP-addressable memory}},
-    \quad n\approx 2^8.
-  \)
-  \end{adjustbox}
 
-  \vspace{-0.15cm}
-  \[
-    \mathtt{MEM\_BASE}=|H_v|=8,\qquad
-    \mathrm{VM}_v[\mathtt{MEM\_BASE}+a]=M_v[a].
-  \]
-
-  \vspace{-0.15cm}
   \begin{adjustbox}{max width=\textwidth}
   \(
   M_v =
   \big[
     \overbrace{
-      \underset{\mathtt{LOD}\ 0}{1},
-      \underset{\mathtt{ADD}\ p_0}{66},
-      \underset{\mathtt{STO}\ q_0}{76},
-      \underset{\mathtt{LOD}\ 1}{9},
-      \underset{\mathtt{BNZ}\ 6}{53},
-      \underset{\mathtt{PRI}\ q_0}{79},
-      \underset{\mathtt{HLT}}{0},\ldots
-    }^{P_{0..c-1}\ \text{packed code }((\mathtt{arg}\ll3)\mid\mathtt{op})},
-    \overbrace{\underbrace{0,\ldots,0}_{\ell}}^{\mathtt{ipt}=p},
-    \overbrace{\underbrace{0,\ldots,0}_{s}}^{\mathtt{opt}=q},
-    \overbrace{\underbrace{0,\ldots,0}_{\gamma=9}}^{\mathtt{scr}=r},
-    \underset{\nu\ \text{scratch}}{0},
+      \underset{\tiny\keys{\texttt{LOD}\ 0}}{1},
+      \underset{\tiny\keys{\texttt{ADD}\ $\alpha_{\scalebox{0.65}{$\scriptscriptstyle 0$}}$\!}}{66},
+      \underset{\tiny\keys{\texttt{STO}\ $\omega_{\scalebox{0.65}{$\scriptscriptstyle 0$}}$\!}}{76},
+      \underset{\tiny\keys{\texttt{LOD}\ 1}}{9},
+      \underset{\tiny\keys{\texttt{BNZ}\ 6}}{53},
+      \underset{\tiny\keys{\texttt{PRI}\ $\omega_{\scalebox{0.65}{$\scriptscriptstyle 0$}}$\!}}{79},
+      \underset{\tiny\keys{\texttt{HLT}}}{0},\underbrace{0,\ldots,0}_{\text{padding}}
+    }^{P_{0..c-1}:\ \text{packed code}},
+    \underset{\lambda}{3},\overbrace{\underbrace{0,\ldots}_{|\alpha|=\lambda},0}^{\mathtt{ipt}=\alpha},
+    \underset{\eta}{2},\overbrace{\underbrace{0,\ldots}_{|\omega|=\eta},0}^{\mathtt{opt}=\omega},
+    \underset{\gamma}{4},\overbrace{\underbrace{0,\ldots}_{|\zeta|=\gamma},0}^{\mathtt{scr}=\zeta},
+    \underset{\nu}{0},
     \overbrace{0,\ldots,0}^{\text{padding}}
   \big]
   \)
   \end{adjustbox}
 
-  \vspace{-0.05cm}
-  \[
-    p=c,\qquad q=c+\ell,\qquad r=c+\ell+s,\qquad
-    \nu=c+\ell+s+\gamma,\qquad c+\ell+s+\gamma+1\le n.
-  \]
-  \vspace{-0.2cm}
-  \[
-    \text{Arithmetic keeps the low 29 bits;}\quad
-    \mathtt{ipt}/\mathtt{opt}/\mathtt{scr}\text{ indices wrap modulo }\ell,s,\gamma.
-  \]
+  \vspace{.5cm}
+
+  \begin{adjustbox}{max width=\textwidth}
+  \(
+  VM_v =
+  \overbrace{[
+  \mathtt{pc},\mathtt{acc},\mathtt{steps},\mathtt{halted},
+  \mathtt{outCount},\mathtt{out}_0,\mathtt{out}_1,\mathtt{out}_2
+  ]}^{H_v:\ \text{hypervisor sidecar}}
+  \ \Vert\
+  \overbrace{\big[M_v[0],\ldots,M_v[n-1]\big]}^{M_v:\ \text{RASP-addressable}},
+  \quad |VM_v| \approx 2^8.
+  \)
+  \end{adjustbox}
+
+  \vspace{.5cm}
+
+  \begin{adjustbox}{max width=\textwidth}
+  \(
+  HVM = [\overbrace{VM_1, VM_2, \underline{VM_3}, \ldots}^{t_1}, \overbrace{VM_1, VM_2, \underline{VM_3}, \ldots}^{t_2}, \ldots, \overbrace{VM_1, VM_2, \underline{VM_3}, \ldots}^{t_{W-1}}]
+  \)
+  \end{adjustbox}
+
+  \vspace{.5cm}
+
+Lift the transition function to a vectorized transition map, \(\Phi:C^d\to C^d\). The resulting configuration after \(i\) steps is \( \mathbf c_i=\Phi^i(\mathbf c_0).\) For a vector of programs \(\mathbf{P}\) and inputs \(\mathbf x\), we will write \( \mathbf c_i(\mathbf P,\mathbf x):=\Phi^i\bigl(\mathbf c_0(\mathbf P,\mathbf x)\bigr)\) for the evolution of $n$ independent machines, each with static memory.
+
+\end{frame}
+
+\begin{frame}{RASP Hypervisor}
+\begin{algorithm}[H]
+\caption{Striped round-robin RASP hypervisor}
+\label{alg:hypervisor}
+\small
+\begin{algorithmic}[1]
+\State \textbf{inputs:} Global config \(\mathbf c_0 \in C^d\), epoch \(q\), step budget \(\tau_{\max}\)
+\State \(\mathbf c \gets \mathbf c_0\), \(W \gets \textsc{MaxResidentThreads}()\)
+\For{\(g = 0\) \textbf{to} \(W-1\) \textbf{in parallel}} \Comment{Persistent workers}
+\For{\(r = 0\) \textbf{to} \(\lceil \tau_{\max} / q \rceil - 1\)} \Comment{Total rounds}
+\For{\(k = 0\) \textbf{to} \(\lceil d / W \rceil-1\)} \Comment{Walk worker stripe}
+\State \(j \gets g + kW\) \Comment{Current VM index}
+\If{\(j < d\) \textbf{and} \(\mathbf c[j] \notin F\)} \Comment{Skip halted VMs}
+\State \(R \gets \textsc{LoadRegs}(\mathbf c[j])\)
+\For{\(t = 1\) \textbf{to} \(q\)} \Comment{Bounded epoch}
+\If{\(R \in F\)} \textbf{break} \EndIf
+\State \(R \gets \Phi_w(R)\) \Comment{One-step transition}
+\EndFor
+\State \(\mathbf c[j] \gets \textsc{StoreRegs}(R)\)
+\EndIf
+\EndFor
+\EndFor
+\EndFor
+\State \textbf{return} \(\mathbf c\)
+\end{algorithmic}
+\end{algorithm}
 \end{frame}
 
 \begin{frame}{Evaluation: Runtime}
